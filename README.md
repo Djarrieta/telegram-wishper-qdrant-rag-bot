@@ -6,15 +6,31 @@ This project is a Telegram bot that lets you save, search, and interact with you
 
 ## Getting Started
 
+### Environment Configuration
+
+Before running the application, you need to configure environment variables:
+
+1. **Copy the example environment file:**
+   ```bash
+   cp .env.example .env.local      # For manual setup
+   cp .env.example .env.docker     # For podman-compose setup
+   ```
+
+2. **Edit the environment file(s) with your actual values:**
+   - `TELEGRAM_TOKEN`: Your Telegram bot token from @BotFather
+   - `GITHUB_SECRET`: Your GitHub Personal Access Token for AI model access
+   - Other variables can remain as default values
+
 ### Quick Start: Run Everything with Podman Compose
 
 You can run the entire application stack (Whisper ASR, Qdrant, and the Telegram bot) using Podman Compose:
 
 ```bash
+# Make sure you have configured .env.docker with your secrets
 podman-compose up -d
 ```
 
-This will build and start all services as defined in `docker-compose.yml`. Make sure to set the required environment variables (e.g., `TELEGRAM_TOKEN`, `MODEL_ENDPOINT`, etc.) in a `.env` file or in your shell before running the command.
+This will build and start all services as defined in `docker-compose.yml`.
 
 You can check database UI in http://localhost:6333/dashboard
 You can check if wishper service is up in http://localhost:9000/docs
@@ -27,6 +43,8 @@ You can check if wishper service is up in http://localhost:9000/docs
     ```bash
     bun install
     ```
+
+   **Note:** Make sure you have configured `.env.local` with your secrets before starting the services.
 
 2. **Start Whisper ASR Webservice (Speech-to-Text)**
     ```bash
