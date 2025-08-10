@@ -51,17 +51,17 @@ You can check if wishper service is up in http://localhost:9000/docs
     podman run -d -p 9000:9000 \
       -e ASR_MODEL=base \
       -e ASR_ENGINE=openai_whisper \
-      onerahmet/openai-whisper-asr-webservice:latest
+      --name whisper onerahmet/openai-whisper-asr-webservice:latest
     ```
-    This will start the transcription service on http://localhost:9000.
+    This will start the transcription service on http://localhost:9000/docs.
 
 3. **Start Qdrant (Vector Database)**
     ```bash
     podman run -d -p 6333:6333 -p 6334:6334 \
       -v "$(pwd)/qdrant_storage:/qdrant/storage:z" \
-      qdrant/qdrant
+      --name qdrant qdrant/qdrant
     ```
-    This will start the Qdrant service on http://localhost:6333.
+    This will start the Qdrant service on http://localhost:6333/dashboard.
 
 4. **Start the bot**
     ```bash
