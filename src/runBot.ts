@@ -1,34 +1,19 @@
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
-import { NotesService } from "./services/NotesService";
-import { AgentService } from "./services/AgentService";
 import { WhisperASRService } from "./services/WhisperASRService";
+import { closeMCP, runMCPAgent } from "./services/MCPAgentService";
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '';
-const MODEL_ENDPOINT = process.env.MODEL_ENDPOINT || "";
-const MODEL = process.env.MODEL || "";
-const GITHUB_SECRET = process.env.GITHUB_SECRET || "";
-const DB_URL = process.env.DB_URL || '';
-const DB_COLLECTION_NAME = process.env.DB_COLLECTION_NAME || '';
 const TRANSCRIPTION_API_URL = process.env.TRANSCRIPTION_API_URL || '';
 
 const bot = new Telegraf(TELEGRAM_TOKEN);
-
-const notesService = new NotesService({
-    url: DB_URL,
-    collectionName: DB_COLLECTION_NAME
-});
-const agentService = new AgentService({
-    modelEndpoint: MODEL_ENDPOINT,
-    model: MODEL,
-    githubSecret: GITHUB_SECRET
-});
 
 const whisper = new WhisperASRService(TRANSCRIPTION_API_URL);
 
 bot.on(message("text"), async (ctx) => {
     let userInput = ctx.message.text;
     await handleUserInput(ctx, userInput);
+
 });
 
 bot.on(message("voice"), async (ctx) => {
@@ -53,19 +38,16 @@ bot.on(message("voice"), async (ctx) => {
 });
 
 async function handleUserInput(ctx: any, userInput: string) {
-    const intent = await agentService.classifyIntent(userInput);
-    let response = "";
-    if (intent === "note") {
-        await notesService.create({
-            id: Date.now(),
-            payload: { content: userInput }
-        });
-        response = "Nota guardada";
-    } else {
-        const notesResults = await notesService.search(userInput, 3);
-        response = await agentService.generateResponse(notesResults, userInput);
+    try {
+        const result = await runMCPAgent(userInput);
+        console.log(result);
+        await closeMCP();
+        await ctx.reply(result);
+        process.exit(0);
+    } catch (err) {
+        console.error("Error:", (err as Error).message);
+        process.exit(1);
     }
-    await ctx.reply(response);
 }
 
 bot.launch();
