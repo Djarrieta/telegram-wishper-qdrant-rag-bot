@@ -13,9 +13,9 @@ export class MCPAgentService {
   private client: MCPClient | null = null;
   private isInitialized = false;
   
-  private apiKey = process.env.DEEPSEEK_API_KEY || '';
-  private modelName = process.env.DEEPSEEK_MODEL || "";
-  private baseURL = process.env.DEEPSEEK_BASE_URL || "";
+  private apiKey = process.env.API_KEY || '';
+  private modelName = process.env.MODEL || "";
+  private baseURL = process.env.BASE_URL || "";
 
   private constructor() {}
 
