@@ -12,26 +12,30 @@ export class MCPAgentService {
   private agent: MCPAgent | null = null;
   private client: MCPClient | null = null;
   private isInitialized = false;
-  
-  private apiKey = process.env.API_KEY || '';
-  private modelName = process.env.MODEL || "";
-  private baseURL = process.env.BASE_URL || "";
 
-  private constructor() {}
+  private apiKey: string;
+  private modelName: string;
+  private baseURL: string;
+
+  private constructor(apiKey?: string, modelName?: string, baseURL?: string) {
+    this.apiKey = apiKey || '';
+    this.modelName = modelName || "";
+    this.baseURL = baseURL || "";
+  }
 
   /**
    * Get the singleton instance of MCPAgentService
    */
-  public static getInstance(): MCPAgentService {
+  public static getInstance(apiKey?: string, modelName?: string, baseURL?: string): MCPAgentService {
     if (!MCPAgentService.instance) {
-      MCPAgentService.instance = new MCPAgentService();
+      MCPAgentService.instance = new MCPAgentService(apiKey, modelName, baseURL);
     }
     return MCPAgentService.instance;
   }
 
   public async initialize(opts: MCPResultOptions = {}): Promise<void> {
     if (this.isInitialized) return;
-    
+
     const config = await this.loadMCPConfig();
     this.client = MCPClient.fromDict(config);
 
@@ -42,19 +46,19 @@ export class MCPAgentService {
       configuration: this.baseURL ? { baseURL: this.baseURL } : undefined,
     });
 
-    this.agent = new MCPAgent({ 
-      llm, 
-      client: this.client, 
-      maxSteps: opts.maxSteps ?? 8 
+    this.agent = new MCPAgent({
+      llm,
+      client: this.client,
+      maxSteps: opts.maxSteps ?? 8
     });
-    
+
     this.isInitialized = true;
   }
 
 
   public async run(prompt: string, opts: MCPResultOptions = {}): Promise<string> {
     if (!prompt?.trim()) throw new Error("Prompt empty");
-    
+
     if (!this.isInitialized) {
       await this.initialize(opts);
     }

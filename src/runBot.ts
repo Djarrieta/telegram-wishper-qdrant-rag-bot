@@ -3,15 +3,14 @@ import { message } from "telegraf/filters";
 import { WhisperASRService } from "./services/WhisperASRService";
 import { MCPAgentService } from "./services/MCPAgentService";
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '';
-const TRANSCRIPTION_API_URL = process.env.TRANSCRIPTION_API_URL || '';
 
-const bot = new Telegraf(TELEGRAM_TOKEN);
-
-const whisper = new WhisperASRService(TRANSCRIPTION_API_URL);
-
-// Get the MCP agent service instance
-const mcpService = MCPAgentService.getInstance();
+const bot = new Telegraf(process.env.TELEGRAM_TOKEN || '');
+const whisper = new WhisperASRService(process.env.TRANSCRIPTION_API_URL || '');
+const mcpService = MCPAgentService.getInstance(
+  process.env.API_KEY,
+  process.env.MODEL,
+  process.env.BASE_URL
+);
 
 // Initialize the MCP agent when the bot starts
 mcpService.initialize().catch(err => {
