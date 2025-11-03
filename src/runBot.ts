@@ -1,16 +1,19 @@
-import { Telegraf, Markup } from "telegraf";
+import puppeteer from 'puppeteer';
+import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
-import { WhisperASRService } from "./services/WhisperASRService";
 import { MCPAgentService } from "./services/MCPAgentService";
+import { WhisperASRService } from "./services/WhisperASRService";
 
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN || '');
 const whisper = new WhisperASRService(process.env.TRANSCRIPTION_API_URL || '');
 const mcpService = MCPAgentService.getInstance(
-  process.env.API_KEY || '',
-  process.env.MODEL || '',
-  process.env.BASE_URL || ''
+    process.env.API_KEY || '',
+    process.env.MODEL || '',
+    process.env.BASE_URL || ''
 );
+
+const permanentKeyboardOptions = ['Option 1', 'Option 2']
 
 // Initialize the MCP agent when the bot starts
 mcpService.initialize().catch(err => {
@@ -46,12 +49,30 @@ bot.on(message("voice"), async (ctx) => {
 });
 
 async function handleUserInput(ctx: any, userInput: string) {
+    if (permanentKeyboardOptions.includes(userInput)) {
+        if (userInput === permanentKeyboardOptions[0]) {
+            await ctx.reply('Capturing CoinMarketCap charts screenshot...');
+            try {
+                const screenshot = await captureChartScreenshot();
+                await ctx.replyWithPhoto({ source: screenshot });
+            } catch (error) {
+                console.error('Screenshot error:', error);
+                await ctx.reply('Sorry, there was an error capturing the screenshot.');
+            }
+        }
+        if (userInput === permanentKeyboardOptions[1]) {
+            await ctx.reply('You selected Option 2. This feature is coming soon!');
+        }
+        return;
+    }
+
+
     try {
         const result = await mcpService.run(userInput);
-        
+
         // Add permanent reply keyboard buttons
         await ctx.reply(result, Markup.keyboard([
-            ['Option 1', 'Option 2']
+            permanentKeyboardOptions
         ]).resize());
     } catch (err) {
         console.error("Error:", (err as Error).message);
@@ -59,14 +80,29 @@ async function handleUserInput(ctx: any, userInput: string) {
     }
 }
 
-// Handle text messages from keyboard buttons
-bot.hears('Option 1', async (ctx) => {
-    await ctx.reply('You selected Option 1!');
-});
+// Function to capture screenshot
+async function captureChartScreenshot(): Promise<Buffer> {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
 
-bot.hears('Option 2', async (ctx) => {
-    await ctx.reply('You selected Option 2!');
-});
+    try {
+        await page.goto('https://coinmarketcap.com/charts/', {
+            waitUntil: 'networkidle0',
+        });
+
+        await Bun.sleep(2000);
+
+        const screenshot = await page.screenshot({
+            type: 'png',
+            fullPage: false
+        });
+
+        return screenshot as Buffer;
+    } finally {
+        await browser.close();
+    }
+}
 
 bot.launch();
 
