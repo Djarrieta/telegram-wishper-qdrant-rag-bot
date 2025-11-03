@@ -22,6 +22,8 @@ services:
     build: .
     env_file:
       - .env.docker
+    environment:
+      - MCP_USE_ANONYMIZED_TELEMETRY=false
     depends_on:
       - whisper-asr
       - qdrant

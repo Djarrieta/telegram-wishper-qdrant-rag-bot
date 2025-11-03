@@ -67,7 +67,6 @@ You can check if wishper service is up in http://localhost:9000/docs
     ```bash
     bun run src/runBot.ts
     ```
-
 ---
 
 

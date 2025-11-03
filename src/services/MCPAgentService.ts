@@ -1,80 +1,107 @@
-import { MCPAgent, MCPClient } from "mcp-use";
 import { ChatOpenAI } from "@langchain/openai";
-import path from "path";
 import { readFile } from "fs/promises";
-
-let agent: MCPAgent | null = null;
-let client: MCPClient | null = null;
-
-const apiKey = process.env.DEEPSEEK_API_KEY || '';
-const modelName = process.env.DEEPSEEK_MODEL || ""
-const baseURL = process.env.DEEPSEEK_BASE_URL || ""
-
+import { MCPAgent, MCPClient } from "mcp-use";
+import path from "path";
 
 export interface MCPResultOptions {
   maxSteps?: number;
 }
 
-export async function runMCPAgent(
-  prompt: string,
-  opts: MCPResultOptions = {}
-): Promise<string> {
-  if (!prompt?.trim()) throw new Error("Prompt empty");
-  if (!agent) {
-    const config = await loadMCPConfig();
-    client = MCPClient.fromDict(config);
+export class MCPAgentService {
+  private static instance: MCPAgentService;
+  private agent: MCPAgent | null = null;
+  private client: MCPClient | null = null;
+  private isInitialized = false;
+  
+  private apiKey = process.env.DEEPSEEK_API_KEY || '';
+  private modelName = process.env.DEEPSEEK_MODEL || "";
+  private baseURL = process.env.DEEPSEEK_BASE_URL || "";
+
+  private constructor() {}
+
+  /**
+   * Get the singleton instance of MCPAgentService
+   */
+  public static getInstance(): MCPAgentService {
+    if (!MCPAgentService.instance) {
+      MCPAgentService.instance = new MCPAgentService();
+    }
+    return MCPAgentService.instance;
+  }
+
+  public async initialize(opts: MCPResultOptions = {}): Promise<void> {
+    if (this.isInitialized) return;
+    
+    const config = await this.loadMCPConfig();
+    this.client = MCPClient.fromDict(config);
 
     const llm = new ChatOpenAI({
-      modelName,
+      modelName: this.modelName,
       temperature: 0.2,
-      apiKey,
-      configuration: baseURL ? { baseURL } : undefined,
+      apiKey: this.apiKey,
+      configuration: this.baseURL ? { baseURL: this.baseURL } : undefined,
     });
 
-    agent = new MCPAgent({ llm, client: client, maxSteps: opts.maxSteps ?? 8 });
+    this.agent = new MCPAgent({ 
+      llm, 
+      client: this.client, 
+      maxSteps: opts.maxSteps ?? 8 
+    });
+    
+    this.isInitialized = true;
   }
 
-  return agent.run(prompt, opts.maxSteps);
-}
 
-export async function closeMCP(): Promise<void> {
-  if (client) {
-    await client.closeAllSessions();
-  }
-  agent = null;
-  client = null;
-}
+  public async run(prompt: string, opts: MCPResultOptions = {}): Promise<string> {
+    if (!prompt?.trim()) throw new Error("Prompt empty");
+    
+    if (!this.isInitialized) {
+      await this.initialize(opts);
+    }
 
-export async function loadMCPConfig() {
-  const cwd = process.cwd();
-  const file = path.join(cwd, "mcp.config.json");
-  let raw: string;
-  try {
-    raw = await readFile(file, "utf8");
-  } catch (err) {
-    throw new Error(
-      "Required mcp.config.json not found in project root. Please create it to define mcpServers."
-    );
+    return this.agent!.run(prompt, opts.maxSteps);
   }
 
-  let parsed: any;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    throw new Error(
-      "Invalid JSON in mcp.config.json: " + (err as Error).message
-    );
+  public async close(): Promise<void> {
+    if (this.client) {
+      await this.client.closeAllSessions();
+    }
+    this.agent = null;
+    this.client = null;
+    this.isInitialized = false;
   }
 
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error(
-      "mcp.config.json must contain a JSON object at the top level"
-    );
+  private async loadMCPConfig() {
+    const cwd = process.cwd();
+    const file = path.join(cwd, "mcp.config.json");
+    let raw: string;
+    try {
+      raw = await readFile(file, "utf8");
+    } catch (err) {
+      throw new Error(
+        "Required mcp.config.json not found in project root. Please create it to define mcpServers."
+      );
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      throw new Error(
+        "Invalid JSON in mcp.config.json: " + (err as Error).message
+      );
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error(
+        "mcp.config.json must contain a JSON object at the top level"
+      );
+    }
+    if (!parsed.mcpServers || typeof parsed.mcpServers !== "object") {
+      throw new Error(
+        "mcp.config.json must include a 'mcpServers' object mapping server names to their definitions"
+      );
+    }
+    return parsed;
   }
-  if (!parsed.mcpServers || typeof parsed.mcpServers !== "object") {
-    throw new Error(
-      "mcp.config.json must include a 'mcpServers' object mapping server names to their definitions"
-    );
-  }
-  return parsed;
 }

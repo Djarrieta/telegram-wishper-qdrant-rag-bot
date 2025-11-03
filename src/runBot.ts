@@ -1,7 +1,7 @@
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { WhisperASRService } from "./services/WhisperASRService";
-import { closeMCP, runMCPAgent } from "./services/MCPAgentService";
+import { MCPAgentService } from "./services/MCPAgentService";
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '';
 const TRANSCRIPTION_API_URL = process.env.TRANSCRIPTION_API_URL || '';
@@ -9,6 +9,15 @@ const TRANSCRIPTION_API_URL = process.env.TRANSCRIPTION_API_URL || '';
 const bot = new Telegraf(TELEGRAM_TOKEN);
 
 const whisper = new WhisperASRService(TRANSCRIPTION_API_URL);
+
+// Get the MCP agent service instance
+const mcpService = MCPAgentService.getInstance();
+
+// Initialize the MCP agent when the bot starts
+mcpService.initialize().catch(err => {
+    console.error("Failed to initialize MCP agent:", err);
+    process.exit(1);
+});
 
 bot.on(message("text"), async (ctx) => {
     let userInput = ctx.message.text;
@@ -39,15 +48,26 @@ bot.on(message("voice"), async (ctx) => {
 
 async function handleUserInput(ctx: any, userInput: string) {
     try {
-        const result = await runMCPAgent(userInput);
+        const result = await mcpService.run(userInput);
         console.log(result);
-        await closeMCP();
         await ctx.reply(result);
-        process.exit(0);
     } catch (err) {
         console.error("Error:", (err as Error).message);
-        process.exit(1);
+        await ctx.reply("Lo siento, ocurrió un error al procesar tu mensaje.");
     }
 }
 
 bot.launch();
+
+// Enable graceful stop
+process.once('SIGINT', () => {
+    mcpService.close().then(() => {
+        bot.stop('SIGINT');
+    });
+});
+
+process.once('SIGTERM', () => {
+    mcpService.close().then(() => {
+        bot.stop('SIGTERM');
+    });
+});
