@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import { Telegraf, Markup } from "telegraf";
 import { message } from "telegraf/filters";
 import { WhisperASRService } from "./services/WhisperASRService";
 import { MCPAgentService } from "./services/MCPAgentService";
@@ -48,13 +48,25 @@ bot.on(message("voice"), async (ctx) => {
 async function handleUserInput(ctx: any, userInput: string) {
     try {
         const result = await mcpService.run(userInput);
-        console.log(result);
-        await ctx.reply(result);
+        
+        // Add permanent reply keyboard buttons
+        await ctx.reply(result, Markup.keyboard([
+            ['Option 1', 'Option 2']
+        ]).resize());
     } catch (err) {
         console.error("Error:", (err as Error).message);
         await ctx.reply("Lo siento, ocurrió un error al procesar tu mensaje.");
     }
 }
+
+// Handle text messages from keyboard buttons
+bot.hears('Option 1', async (ctx) => {
+    await ctx.reply('You selected Option 1!');
+});
+
+bot.hears('Option 2', async (ctx) => {
+    await ctx.reply('You selected Option 2!');
+});
 
 bot.launch();
 
