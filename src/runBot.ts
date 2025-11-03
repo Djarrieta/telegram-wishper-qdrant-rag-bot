@@ -7,9 +7,9 @@ import { MCPAgentService } from "./services/MCPAgentService";
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN || '');
 const whisper = new WhisperASRService(process.env.TRANSCRIPTION_API_URL || '');
 const mcpService = MCPAgentService.getInstance(
-  process.env.API_KEY,
-  process.env.MODEL,
-  process.env.BASE_URL
+  process.env.API_KEY || '',
+  process.env.MODEL || '',
+  process.env.BASE_URL || ''
 );
 
 // Initialize the MCP agent when the bot starts
