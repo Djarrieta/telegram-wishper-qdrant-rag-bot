@@ -23,6 +23,7 @@
   },
   "scripts": {
     "runBot": "bun run src/runBot.ts",
-    "loadPdfToQdrant": "bun run src/loadPdfToQdrant.ts"
+    "loadPdfToQdrant": "bun run src/loadPdfToQdrant.ts",
+    "dataclean": "bun run src/dataclean.ts"
   }
 }
